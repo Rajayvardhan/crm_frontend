@@ -4,11 +4,6 @@ import { updateLeave, viewLeaves } from '../../http';
 import { toast } from 'react-toastify';
 import Loading from '../Loading';
 
-
-
-
-
-
 const Leave = () => {
     const {id} = useParams();
     const [application, setApplication] = useState();
@@ -22,9 +17,7 @@ const Leave = () => {
             setApplication(res.data[0]);
         }
         fetchData();
-
     },[application]);
-
     const approveApplication = async() => {
       console.log(application)
       if(application.adminResponse==="Approved")
