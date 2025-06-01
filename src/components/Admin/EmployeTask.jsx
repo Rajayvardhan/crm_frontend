@@ -16,6 +16,7 @@ function EmployeTask() {
   const [employees, setEmployees] = useState();
   const [employeeMap, setEmployeeMap] = useState();
   const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [selectedDate, setSelectedDate] = useState(""); // New state for date
   const [showModal, setShowModal] = useState(false);
   const [showtask, setShowtask] = useState(false);
   const [formData, setFormData] = useState({
@@ -33,7 +34,7 @@ function EmployeTask() {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const res = await api.get(`http://localhost:5500/api/task/get-allEmployee`);
+        const res = await api.get(`http://localhost:5500/api/task/get-allEmployee?type=employee`);
         setTeamMembers(res.data);
       } catch (error) {
         console.error("❌ Error fetching members:", error);
@@ -94,7 +95,7 @@ function EmployeTask() {
   };
 
   const searchEmployeeTask = () => {
-    setShowtask(true); // ✅ Always show Task component after search
+    setShowtask(true); // Show task section
   };
 
   return (
@@ -113,7 +114,8 @@ function EmployeTask() {
                   </div>
                   <div className="card-body">
                     <div className="row">
-                      <div className="col-md-9">
+                      {/* Employee Select */}
+                      <div className="col-md-5">
                         <label htmlFor="selectemployee" className="form-label">
                           Select Employee
                         </label>
@@ -132,26 +134,35 @@ function EmployeTask() {
                           ))}
                         </select>
                       </div>
-                      <div className="col-md-3">
-                        <div className="mt-4">
-                          <button
-                            onClick={searchEmployeeTask}
-                            className="btn bg-primary rounded-sm px-3 py-2 text-white border-0"
-                          >
-                            <i className="bi bi-search me-2"></i>Search
-                          </button>
-                        </div>
+
+                      {/* Date Picker */}
+                      <div className="col-md-4">
+                        <label htmlFor="selectdate" className="form-label">
+                          Select Date
+                        </label>
+                        <input
+                          type="date"
+                          style={{ height: "42px" }}
+                          className="form-control select2"
+                          value={selectedDate}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="col-md-2 d-flex align-items-end">
+                        <button
+                          onClick={searchEmployeeTask}
+                          className="bg-primary rounded-sm px-3 py-2 text-white border-0 w-100"
+                        >
+                          <i className="bi bi-search me-2"></i>Search
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* ✅ Only show Task component when search is clicked */}
               {showtask && (
-                // <div className="">
-                  <Task selectedEmployee={selectedEmployee} />
-                // </div>
+                <Task selectedEmployee={selectedEmployee} selectedDate={selectedDate} />
               )}
             </div>
           </div>

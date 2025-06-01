@@ -1,19 +1,28 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import axios from "axios";
-import api from "../../http";
+import api, { getMembers_Leader } from "../../http";
 
 const Leader = () => {
-  const {user} = useSelector(state=>state.authSlice);
-  const [meetingsToday, setMeetingsToday] = useState([]); // Store today's meetings
-  const [loading, setLoading] = useState(true); // Handle loading state
+  const authState = useSelector(state => state.authSlice);
+  const user = authState?.user?.user || {};
+  const [meetingsToday, setMeetingsToday] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deals, setDeals] = useState([]);
+  const [users, setUsers] = useState();
 
-  // Existing Employee & Holiday data
+  const [filters, setFilters] = useState({
+    status: 'won',
+    assigned_employee: '',
+    startDate: '',
+    endDate: ''
+  });
+  const [loadingDeals, setLoadingDeals] = useState(false);
+
   const employees = [
     {
       name: "Jennie Duncan",
-      image:
-        "https://storage.googleapis.com/a1aa/image/c2bd0146-dff9-4b60-9b6e-215fbdd1dfa5.jpg",
+      image: "https://storage.googleapis.com/a1aa/image/c2bd0146-dff9-4b60-9b6e-215fbdd1dfa5.jpg",
       dob: "1995-05-05",
     },
     {
@@ -50,6 +59,17 @@ const Leader = () => {
     },
   ];
 
+
+  useEffect(() => {
+    (async () => {
+      const res = await getMembers_Leader();
+      if (res.success) {
+        setUsers(res.data);
+        console.log(res.data);
+      }
+    })();
+  }, [])
+
   const today = new Date();
   const todayMonth = today.getMonth() + 1;
   const todayDate = today.getDate();
@@ -79,75 +99,56 @@ const Leader = () => {
         const response = await api.get(
           `http://localhost:5500/api/task/meetings/today/${user.id}`
         );
-        setMeetingsToday(response.data); // Set the fetched meetings in the state
+        setMeetingsToday(response.data);
       } catch (error) {
         console.error("Error fetching today's meetings:", error);
       } finally {
-        setLoading(false); // Set loading to false once the data is fetched
+        setLoading(false);
       }
     };
 
-    console.log("jdjjdjfkdjfkdjfkdjfkjdkjfjdfjkdjfkkd")
-    console.log(user)
-
     if (user || user.id) {
       fetchMeetingsForToday();
+      fetchFilteredDeals();
     }
-  }, [user]); // Depend on `user` to refetch if it changes
+  }, [user]);
+
+  // Fetch filtered deals
+  const fetchFilteredDeals = async () => {
+    setLoadingDeals(true);
+    try {
+      const params = {
+        assigned_leader: user.id,
+        status: filters.status,
+        ...(filters.assigned_employee && { assigned_employee: filters.assigned_employee }),
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate })
+      };
+
+      const response = await api.get('/task/filterDeals', { params });
+      setDeals(response.data);
+    } catch (error) {
+      console.error('Error fetching filtered deals:', error);
+    } finally {
+      setLoadingDeals(false);
+    }
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const applyFilters = () => {
+    fetchFilteredDeals();
+  };
 
   return (
     <>
       <div className="row">
-        {/* <section className="section">
-          <div className="card">
-            <div className="card-header d-flex justify-content-between">
-              <h4>Welcome {user?.name}</h4>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-body row">
-              <div className="col-md-3 ">
-                <img className="img-fluid img-thumbnail" src={user.image} alt="" />
-              </div>
-              <div className="col-md-9">
-                <table className="table">
-                  <tbody>
-                    <tr>
-                      <th>Name</th>
-                      <td>{user.name}</td>
-                    </tr>
-                    <tr>
-                      <th>Username</th>
-                      <td>{user.username}</td>
-                    </tr>
-                    <tr>
-                      <th>Email</th>
-                      <td>{user.email}</td>
-                    </tr>
-                    <tr>
-                      <th>Usertype</th>
-                      <td>{user.type}</td>
-                    </tr>
-                    <tr>
-                      <th>Status</th>
-                      <td>{user.status}</td>
-                    </tr>
-                    <tr>
-                      <th>Mobile</th>
-                      <td>{user.mobile}</td>
-                    </tr>
-                    <tr>
-                      <th>Address</th>
-                      <td>{user.address}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section> */}
-
         <div className="col-xl-4">
           <div className="card cardborder overflow-hidden p-0 rounded-3 ">
             <div className="bg-primary-subtle">
@@ -168,7 +169,7 @@ const Leader = () => {
               </div>
             </div>
 
-            <div className="card-body pt-0" style={{paddingBottom:"185px"}}>
+            <div className="card-body pt-0" style={{ paddingBottom: "185px" }}>
               <div className="row">
                 <div className="col-sm-5">
                   <div className="avatar-md profile-user-wid mb-4 position-relative">
@@ -262,11 +263,10 @@ const Leader = () => {
               {holidays?.map((holiday, index) => (
                 <div
                   key={index}
-                  className={`d-flex justify-content-between align-items-center ${
-                    index !== holidays?.length - 1
+                  className={`d-flex justify-content-between align-items-center ${index !== holidays?.length - 1
                       ? "border-bottom pb-3 mb-3"
                       : "pt-2"
-                  }`}
+                    }`}
                 >
                   <div className="d-flex align-items-center gap-3">
                     <img
@@ -306,11 +306,11 @@ const Leader = () => {
             </div>
           </div>
         </div>
-
-       
       </div>
-       {/* Meetings Section */}
-       <div className="col-md-8">
+
+      {/* Meetings Section */}
+      <div className="row mt-4">
+        <div className="col-md-12">
           <div className="card cardborder rounded-4">
             <h5 className="card-header">Today's Meetings</h5>
             <div className="card-body">
@@ -329,13 +329,13 @@ const Leader = () => {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan="4" className="text-center">
+                        <td colSpan="6" className="text-center">
                           Loading...
                         </td>
                       </tr>
                     ) : meetingsToday?.length === 0 ? (
                       <tr>
-                        <td colSpan="4" className="text-center">
+                        <td colSpan="6" className="text-center">
                           No meetings scheduled for today.
                         </td>
                       </tr>
@@ -347,7 +347,7 @@ const Leader = () => {
                           <td className="text-danger">{new Date(meeting.endDate).toLocaleString()}</td>
                           <td className="text-danger">{meeting.venue}</td>
                           <td className="text-danger">{meeting.location}</td>
-                          <td className="text-danger">{meeting.dealId.status}</td>
+                          <td className="text-danger">{meeting.dealId?.status}</td>
                         </tr>
                       ))
                     )}
@@ -357,7 +357,99 @@ const Leader = () => {
             </div>
           </div>
         </div>
-        
+      </div>
+
+      {/* Deals Section with Filters */}
+      <div className="row mt-4">
+        <div className="col-md-12">
+          <div className="card cardborder rounded-4">
+            <div className="card-header d-flex justify-content-between align-items-center">
+              <h5>Deals</h5>
+              <div className="d-flex gap-2">
+                <select
+                  className="form-select form-select-sm"
+                  name="status"
+                  value={filters.status}
+                  onChange={handleFilterChange}
+                >
+                  <option value="won">Won</option>
+                  <option value="untouched">Untouched</option>
+                  <option value="next_meeting">Next Meeting</option>
+                  <option value="quotation">Quotation</option>
+                  <option value="Loss">Loss</option>
+                </select>
+
+                <select
+                  className="form-select form-select-sm"
+                  name="assigned_employee"
+                  value={filters.assigned_employee}
+                  onChange={handleFilterChange}
+                >
+                  <option value="">All Employees</option>
+                  {users?.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={applyFilters}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+
+            <div className="card-body">
+              <div className="table-responsive">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Lead</th>
+                      <th>Assigned Employee</th>
+                      <th>Assigned leader</th>
+                      <th>Status</th>
+                      <th>Created At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingDeals ? (
+                      <tr>
+                        <td colSpan="5" className="text-center">
+                          Loading deals...
+                        </td>
+                      </tr>
+                    ) : deals.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center">
+                          No deals found
+                        </td>
+                      </tr>
+                    ) : (
+                      deals.map((deal) => (
+                        <tr key={deal._id}>
+                          <td>{deal.lead?.name || 'N/A'}</td>
+                          <td>{deal.assigned_employee?.name || 'N/A'}</td>
+                          <td>{deal.assigned_leader?.name || 'N/A'}</td>
+
+                          <td>
+                            <span className={`badge bg-${deal.status === 'won' ? 'success' : deal.status === 'Loss' ? 'danger' : 'warning'}`}>
+                              {deal.status}
+                            </span>
+                          </td>
+                          <td>{new Date(deal.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 };

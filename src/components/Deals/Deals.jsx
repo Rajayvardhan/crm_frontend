@@ -1,16 +1,20 @@
-// Deals.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import MeetingModal from './MeetingModal';
 import api from '../../http';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const Deals = ({ selectedEmployee }) => {
   const [deals, setDeals] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState(null);
-  
+  const [autoOpenMeetingModal, setAutoOpenMeetingModal] = useState(false);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [data, setData] = useState({
     columns: {
@@ -28,11 +32,23 @@ const Deals = ({ selectedEmployee }) => {
 
   useEffect(() => {
     if (id) fetchDeals();
-  }, [id]);
+  }, [id, startDate, endDate]);
 
   const fetchDeals = async () => {
+    setIsLoading(true);
     try {
-      const res = await api.get(`http://localhost:5500/api/task/getDealss/${id}`);
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append('employeeId', id);
+      
+      if (startDate) {
+        params.append('startDate', startDate.toISOString().split('T')[0]);
+      }
+      if (endDate) {
+        params.append('endDate', endDate.toISOString().split('T')[0]);
+      }
+
+      const res = await api.get(`http://localhost:5500/api/task/getDealss/${id}?${params.toString()}`);
       const dealsData = res.data;
 
       const updatedData = {
@@ -43,7 +59,7 @@ const Deals = ({ selectedEmployee }) => {
       };
 
       dealsData.forEach(deal => {
-        const status = deal.Status || "untouched";
+        const status = deal.status || "untouched";
         if (updatedData.columns[status]) {
           updatedData.columns[status].tasks.push(deal);
         }
@@ -54,7 +70,22 @@ const Deals = ({ selectedEmployee }) => {
     } catch (err) {
       console.error("❌ Error fetching deals:", err);
       toast.error("Failed to fetch deals");
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleDateFilter = () => {
+    if (startDate && endDate && startDate > endDate) {
+      toast.error("End date cannot be before start date");
+      return;
+    }
+    fetchDeals();
+  };
+
+  const resetDateFilter = () => {
+    setStartDate(null);
+    setEndDate(null);
   };
 
   const onDragEnd = async (result) => {
@@ -78,7 +109,7 @@ const Deals = ({ selectedEmployee }) => {
 
     const startTasks = Array.from(start.tasks);
     const [moved] = startTasks.splice(source.index, 1);
-    const updatedDeal = { ...moved, Status: finish.id };
+    const updatedDeal = { ...moved, status: finish.id };
     const finishTasks = Array.from(finish.tasks);
     finishTasks.splice(destination.index, 0, updatedDeal);
 
@@ -96,7 +127,14 @@ const Deals = ({ selectedEmployee }) => {
         dealId: draggableId,
         newStage: finish.id,
       });
+      
       toast.success(`✅ Deal status updated to ${finish.title}`);
+      
+      if (finish.id === "next_meeting") {
+        setSelectedDealId(draggableId);
+        setAutoOpenMeetingModal(true);
+        setIsModalOpen(true);
+      }
     } catch (error) {
       console.error("Error updating deal status:", error);
       toast.error("❌ Failed to update deal status");
@@ -107,6 +145,12 @@ const Deals = ({ selectedEmployee }) => {
   const handleOpenMeetingModal = (dealId) => {
     setSelectedDealId(dealId);
     setIsModalOpen(true);
+    setAutoOpenMeetingModal(false);
+  };
+
+  const handleMeetingSuccess = () => {
+    toast.success("Meeting scheduled successfully!");
+    fetchDeals();
   };
 
   const DealCard = ({ deal, index }) => (
@@ -123,7 +167,7 @@ const Deals = ({ selectedEmployee }) => {
             <p className="text-muted small mb-1">{deal.description || "No description"}</p>
             <p className="text-muted small mb-1">Client: {deal?.lead?.name || "N/A"}</p>
             <p className="text-muted small mb-1">Date: {new Date(deal.createdAt).toLocaleDateString()}</p>
-            <p className="text-muted small">Status: {deal.Status || "untouched"}</p>
+            <p className="text-muted small">Status: {deal.status || "untouched"}</p>
           </div>
           <div className="dropdown position-absolute top-0 end-0">
             <a className="btn dropdown-toggle btn bg-white" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -172,28 +216,78 @@ const Deals = ({ selectedEmployee }) => {
     <div className="main-content dealsmanage">
       <section className="section">
         <div className="card">
-          <div className="card-header">
+          <div className="card-header d-flex justify-content-between align-items-center">
             <h4>My Deals</h4>
+            <div className="d-flex align-items-center gap-2">
+              <div className="d-flex align-items-center gap-2">
+                <DatePicker
+                  selected={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  selectsStart
+                  startDate={startDate}
+                  endDate={endDate}
+                  placeholderText="Start Date"
+                  className="form-control form-control-sm"
+                  dateFormat="yyyy-MM-dd"
+                />
+                <span>to</span>
+                <DatePicker
+                  selected={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  selectsEnd
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={startDate}
+                  placeholderText="End Date"
+                  className="form-control form-control-sm"
+                  dateFormat="yyyy-MM-dd"
+                />
+              </div>
+              <button 
+                className="btn btn-primary btn-sm"
+                onClick={handleDateFilter}
+                disabled={!startDate && !endDate}
+              >
+                Filter
+              </button>
+              {(startDate || endDate) && (
+                <button 
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={resetDateFilter}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        <DragDropContext onDragEnd={onDragEnd}>
-          <div className="row">
-            {data.columnOrder.map(columnId => {
-              const column = data.columns[columnId];
-              const columnTasks = column.tasks;
-              return <Column key={columnId} column={column} tasks={columnTasks} />;
-            })}
+        {isLoading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
           </div>
-        </DragDropContext>
+        ) : (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div className="row">
+              {data.columnOrder.map(columnId => {
+                const column = data.columns[columnId];
+                const columnTasks = column.tasks;
+                return <Column key={columnId} column={column} tasks={columnTasks} />;
+              })}
+            </div>
+          </DragDropContext>
+        )}
       </section>
 
-      {/* Meeting Modal */}
       <MeetingModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         selectedDealId={selectedDealId}
         selectedEmployee={selectedEmployee}
+        autoOpen={autoOpenMeetingModal}
+        onMeetingSuccess={handleMeetingSuccess}
       />
     </div>
   );

@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { toast } from "react-toastify";
 import api from "../../http";
+import { toast } from "react-toastify";
 
 export default function ViewLead() {
   const { id } = useParams();
+
+  // State
   const [leads, setLeads] = useState([]);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showDealModal, setShowDealModal] = useState(false);
-  const [selectedLead, setSelectedLead] = useState(null);
   const [leaders, setLeaders] = useState([]);
   const [form, setForm] = useState({
     result: "",
@@ -20,6 +19,11 @@ export default function ViewLead() {
     assigned_leader: "",
   });
 
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showDealModal, setShowDealModal] = useState(false);
+
+  // Fetch Data
   useEffect(() => {
     fetchLeads();
     fetchLeaders();
@@ -27,12 +31,8 @@ export default function ViewLead() {
 
   const fetchLeads = async () => {
     try {
-      const res = await api.get(
-        `http://localhost:5500/api/task/getlead/${id}`
-      );
-      setLeads(res);
-      console.log(res);
-      
+      const res = await api.get(`http://localhost:5500/api/task/getlead/${id}`);
+       setLeads(res);
     } catch (error) {
       console.error("Error fetching leads:", error);
     }
@@ -40,27 +40,28 @@ export default function ViewLead() {
 
   const fetchLeaders = async () => {
     try {
-      const data = await api.get(
+      const res = await api.get(
         `http://localhost:5500/api/task/get-salesLeader`
       );
-
-      setLeaders(data);
+      setLeaders(res.data || []);
     } catch (err) {
       console.error("Leader fetch error:", err);
     }
   };
 
+  // Handle Input Change
   const handleInput = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Open Modals
   const openUpdateModal = (lead) => {
     setSelectedLead(lead);
     setForm({
-      ...form,
       result: lead.result || "",
-      interest: lead.interest || "",
       duration: "",
+      interest: lead.interest || "",
       reminder: "",
     });
     setShowUpdateModal(true);
@@ -68,60 +69,61 @@ export default function ViewLead() {
 
   const openDealModal = (lead) => {
     setSelectedLead(lead);
-    setForm({ ...form, value: "", assigned_leader: "", reminder: "" });
+    setForm({ value: "", assigned_leader: "", reminder: "" });
     setShowDealModal(true);
   };
 
+  // Submit Handlers
   const submitUpdate = async () => {
     try {
-      const res = await api.put(`http://localhost:5500/api/task/updatelead`, {
+      await api.put(`http://localhost:5500/api/task/updatelead`, {
         leadID: selectedLead._id,
         result: form.result,
         duration: form.duration,
         interest: form.interest,
         reminder: form.reminder,
       });
-      toast.success("Lead updated");
+      toast.success("Lead updated successfully");
       setShowUpdateModal(false);
       fetchLeads();
     } catch (err) {
       console.error(err);
-      toast.error("Error updating lead");
+      toast.error("Failed to update lead");
     }
   };
 
   const submitDeal = async () => {
     try {
-      const res = await api.post(
-        `http://localhost:5500/api/task/createDeals`,
-        {
-          leadID: selectedLead._id,
-          value: form.value,
-          assigned_leader: form.assigned_leader,
-          reminder: form.reminder,
-        }
-      );
-      toast.success("Deal created");
+      await api.post(`http://localhost:5500/api/task/createDeals`, {
+        leadID: selectedLead._id,
+        value: form.value,
+        assigned_leader: form.assigned_leader,
+        reminder: form.reminder,
+      });
+      toast.success("Deal created successfully");
       setShowDealModal(false);
+      fetchLeads(); // Refresh lead list to reflect change
     } catch (err) {
       console.error(err);
-      toast.error("Error creating deal");
+      toast.error("Failed to create deal");
     }
   };
 
+  // Interest Badge Mapping
   const getInterestBadge = (interest) => {
-    const map = {
-        Hot: "badge bg-danger",               // 🔴 Red
-        Cold: "badge bg-primary",             // 🔵 Blue
-        Warm: "badge bg-warning text-dark",   // 🟡 Yellow
-        Medium: "badge bg-success",           // 🟢 Green
-        Low: "badge bg-secondary",    
+    const badgeMap = {
+      Hot: "badge bg-danger",
+      Cold: "badge bg-primary",
+      Warm: "badge bg-warning text-dark",
+      Medium: "badge bg-success",
+      Low: "badge bg-secondary",
     };
     return (
-      <span className={map[interest] || "badge bg-secondary"}>{interest}</span>
+      <span className={badgeMap[interest] || "badge bg-secondary"}>
+        {interest}
+      </span>
     );
   };
-
 
   return (
     <>
@@ -130,50 +132,63 @@ export default function ViewLead() {
           <div className="row">
             <div className="col-md-12">
               <div className="card shadow-sm">
-                <div className="card-header">
+                <div className="card-header d-flex justify-content-between align-items-center">
                   <h5 className="text-primary mb-0">
                     <i className="bi bi-list-check me-2"></i>My Tasks
                   </h5>
                 </div>
                 <div className="card-body">
                   <div className="table-responsive">
-                    <table className="table table-bordered">
-                      <thead className="bg-light">
+                    <table className="table table-bordered table-hover align-middle">
+                      <thead className="bg-light text-center">
                         <tr>
                           <th>Task Title</th>
                           <th>Lead Name</th>
                           <th>Contact No.</th>
                           <th>State</th>
                           <th>Interest</th>
-                          <th>Remark</th>
                           <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {leads?.map((lead, i) => (
-                          <tr key={i}>
-                            <td>{lead.taskID?.title || "N/A"}</td>
-                            <td>{lead.name}</td>
-                            <td>{lead.Contact_No}</td>
-                            <td>{lead.State}</td>
-                            <td>{getInterestBadge(lead.interest)}</td>
-                            <td>{lead.result}</td>
-                            <td>
-                              <button
-                                className="btn btn-sm btn-outline-primary me-2"
-                                onClick={() => openUpdateModal(lead)}
-                              >
-                                Update Lead
-                              </button>
-                              <button
-                                className="btn btn-sm btn-outline-success"
-                                onClick={() => openDealModal(lead)}
-                              >
-                                Assign Deal
-                              </button>
+                        {leads.length > 0 ? (
+                          leads.map((lead, i) => (
+                            <tr key={i}>
+                              <td>{lead.taskID?.title || "N/A"}</td>
+                              <td>{lead.name}</td>
+                              <td>{lead.Contact_No}</td>
+                              <td>{lead.State}</td>
+                              <td className="text-center">
+                                {getInterestBadge(lead.interest)}
+                              </td>
+                              <td className="text-center">
+                                {lead.result === "Pending" ? (
+                                  <>
+                                    <button
+                                      className="btn btn-sm btn-outline-primary me-2"
+                                      onClick={() => openUpdateModal(lead)}
+                                    >
+                                      Update Lead
+                                    </button>
+                                    <button
+                                      className="btn btn-sm btn-outline-success"
+                                      onClick={() => openDealModal(lead)}
+                                    >
+                                      Assign Deal
+                                    </button>
+                                  </>
+                                
+                                ) : getInterestBadge(lead.result)}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="7" className="text-center">
+                              No leads found
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -184,58 +199,72 @@ export default function ViewLead() {
         </div>
       </div>
 
-      {/* 🔧 Update Modal */}
+      {/* Update Modal */}
       {showUpdateModal && (
-        <div className="modal d-block" tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
+        <div className="modal fade show d-block" tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header bg-primary text-white">
                 <h5 className="modal-title">Update Lead</h5>
                 <button
                   type="button"
-                  className="btn-close"
+                  className="btn-close btn-close-white"
                   onClick={() => setShowUpdateModal(false)}
                 ></button>
               </div>
               <div className="modal-body">
-                <input
-                  name="result"
-                  placeholder="Result"
-                  className="form-control mb-2"
-                  value={form.result}
-                  onChange={handleInput}
-                />
-                <input
-                  name="duration"
-                  placeholder="Duration"
-                  className="form-control mb-2"
-                  value={form.duration}
-                  onChange={handleInput}
-                />
-                <select
-                  name="interest"
-                  className="form-control mb-2"
-                  value={form.interest}
-                  onChange={handleInput}
-                >
-                  <option value="">Select Interest</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                  <option value="Hot">Hot</option>
-                  <option value="Cold">Cold</option>
-                  <option value="Warm">Warm</option>
-                </select>
-                <input
-                  name="reminder"
-                  placeholder="Reminder Date"
-                  type="date"
-                  className="form-control mb-2"
-                  value={form.reminder}
-                  onChange={handleInput}
-                />
+                <div className="mb-3">
+                  <label className="form-label">Result</label>
+                  <input
+                    name="result"
+                    placeholder="Result"
+                    className="form-control"
+                    value={form.result}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Duration</label>
+                  <input
+                    name="duration"
+                    placeholder="Duration"
+                    className="form-control"
+                    value={form.duration}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Interest Level</label>
+                  <select
+                    name="interest"
+                    className="form-select"
+                    value={form.interest}
+                    onChange={handleInput}
+                  >
+                    <option value="">Select Interest</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                    <option value="Hot">Hot</option>
+                    <option value="Cold">Cold</option>
+                    <option value="Warm">Warm</option>
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Reminder Date</label>
+                  <input
+                    name="reminder"
+                    type="date"
+                    className="form-control"
+                    value={form.reminder}
+                    onChange={handleInput}
+                  />
+                </div>
               </div>
               <div className="modal-footer">
-                <button className="btn btn-primary" onClick={submitUpdate}>
+                <button
+                  className="btn btn-primary"
+                  onClick={submitUpdate}
+                >
                   Save Changes
                 </button>
               </div>
@@ -244,52 +273,62 @@ export default function ViewLead() {
         </div>
       )}
 
-      {/* 🆕 Deal Modal */}
+      {/* Create Deal Modal */}
       {showDealModal && (
-        <div className="modal d-block" tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
+        <div className="modal fade show d-block" tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header bg-success text-white">
                 <h5 className="modal-title">Create Deal from Lead</h5>
                 <button
                   type="button"
-                  className="btn-close"
+                  className="btn-close btn-close-white"
                   onClick={() => setShowDealModal(false)}
                 ></button>
               </div>
               <div className="modal-body">
-                <input
-                  name="value"
-                  placeholder="Deal Value"
-                  className="form-control mb-2"
-                  value={form.value}
-                  onChange={handleInput}
-                />
-                <select
-                  name="assigned_leader"
-                  className="form-control mb-2"
-                  value={form.assigned_leader}
-                  onChange={handleInput}
-                >
-                  <option value="">Select Leader</option>
-                  {leaders?.data?.data?.map((leader) => (
-                    <option key={leader._id} value={leader._id}>
-                      {leader.name}
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  name="reminder"
-                  placeholder="Reminder Date"
-                  type="date"
-                  className="form-control mb-2"
-                  value={form.reminder}
-                  onChange={handleInput}
-                />
+                <div className="mb-3">
+                  <label className="form-label">Deal Value</label>
+                  <input
+                    name="value"
+                    placeholder="Deal Value"
+                    className="form-control"
+                    value={form.value}
+                    onChange={handleInput}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Assigned Leader</label>
+                  <select
+                    name="assigned_leader"
+                    className="form-select"
+                    value={form.assigned_leader}
+                    onChange={handleInput}
+                  >
+                    <option value="">Select Leader</option>
+                    {leaders.map((leader) => (
+                      <option key={leader._id} value={leader._id}>
+                        {leader.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Reminder Date</label>
+                  <input
+                    name="reminder"
+                    type="date"
+                    className="form-control"
+                    value={form.reminder}
+                    onChange={handleInput}
+                  />
+                </div>
               </div>
               <div className="modal-footer">
-                <button className="btn btn-success" onClick={submitDeal}>
+                <button
+                  className="btn btn-success"
+                  onClick={submitDeal}
+                >
                   Create Deal
                 </button>
               </div>

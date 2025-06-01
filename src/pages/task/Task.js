@@ -10,7 +10,7 @@ import {
 import { Link } from "react-router-dom";
 import api from '../../http';
 
-const Task = ({selectedEmployee}) => {
+const Task = ({selectedEmployee,selectedDate}) => {
   const [tasks, setTasks] = useState([]);
   const [modalData, setModalData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -23,16 +23,13 @@ const Task = ({selectedEmployee}) => {
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [selectedEmployee,selectedDate]);
 
   const fetchTasks = async () => {
     try {
-      const res = await api.get(`http://localhost:5500/api/task/user-today/${_id}`);
+      const res = await api.get(`http://localhost:5500/api/task/user-today/${_id}?date=${selectedDate || new Date().toISOString().split('T')[0]}`);
       const taskData = res.data.tasks;
       const leadData = res.data.leads;
-
-      console.log(res);
-      
 
       const tasksWithLeads = taskData.map(task => ({
         ...task,
@@ -253,7 +250,7 @@ const Task = ({selectedEmployee}) => {
 
   return (
     <div className="main-content">
-      <section className="section">
+      <section className="">
         <div className="card">
           <div className="card-header">
             <h4>Today's Tasks</h4>

@@ -7,10 +7,10 @@ import { dLogout } from "../../http/index";
 import { setAuth } from "../../store/auth-slice";
 import { useSelector } from "react-redux";
 const Leader = () => {
-  const { name, image } = useSelector((state) => state.authSlice.user.user);
-  const {user} = useSelector(state => state.authSlice);
-  console.log("dfgjdcjkdsjh",user);
-  
+  const { name, image } = useSelector((state) => state.authSlice.user);
+  const { user } = useSelector(state => state.authSlice);
+  console.log("dfgjdcjkdsjh", user);
+
   const dispatch = useDispatch();
   const history = useHistory();
 
@@ -19,7 +19,7 @@ const Leader = () => {
 
     // ✅ Clear localStorage
     localStorage.removeItem('user');
-            localStorage.removeItem("accessToken");
+    localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     dispatch(setAuth(null));
 
@@ -68,22 +68,21 @@ const Leader = () => {
               <i className="bi bi-people-fill mx-2"></i>Members
             </NavLink>
           </li>
-          {user.user.branch === 'tech' && (
-  <li className="nav-item">
-    <NavLink
-      to="/all-task"
-      className={({ isActive }) =>
-        `nav-link ${
-          isActive
-            ? 'active text-primary fw-bold bg-white rounded shadow-sm'
-            : 'text-secondary'
-        }`
-      }
-    >
-      <i className="bi bi-person-lines-fill mx-2"></i>Employee Task
-    </NavLink>
-  </li>
-)}
+          {(user?.user?.branch === 'tech' || user?.user?.branch === 'telecaller') && (
+            <li className="nav-item">
+              <NavLink
+                to="/all-task"
+                className={({ isActive }) =>
+                  `nav-link ${isActive
+                    ? 'active text-primary fw-bold bg-white rounded shadow-sm'
+                    : 'text-secondary'
+                  }`
+                }
+              >
+                <i className="bi bi-person-lines-fill mx-2"></i>Employee Task
+              </NavLink>
+            </li>
+          )}
 
           <li className="nav-item">
             <NavLink to="/userAttendance" className={({ isActive }) => `nav-link ${isActive ? 'active text-primary fw-bold bg-white rounded shadow-sm' : 'text-secondary'}`}>
@@ -92,36 +91,36 @@ const Leader = () => {
           </li>
           <li><NavLink className="nav-link" to="/events"><i className="fas fa-users"></i> <span>Events</span></NavLink></li>
           {/* Sales Dropdown */}
-          {user.user.branch === 'sales' && (
-  <li className="nav-item">
-    <a
-      className="nav-link d-flex justify-content-between align-items-center"
-      data-bs-toggle="collapse"
-      href="#salesSubmenu"
-      role="button"
-      aria-expanded="false"
-      aria-controls="salesSubmenu"
-    >
-      <span><i className="bi bi-bar-chart-line-fill me-2 ms-3" ></i> Sales </span>
-      <i className="bi bi-chevron-down"></i>
-    </a>
-    <div className="collapse ps-3" id="salesSubmenu">
-      <ul className="nav flex-column ps-0">
-        <li>
-          <NavLink to="/deals" className={({ isActive }) => `nav-link ${isActive ? 'active text-primary fw-bold bg-white rounded shadow-sm' : 'text-secondary'}`}>
-            <i className="bi bi-percent me-2"></i>Deals
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/leaderlead" className={({ isActive }) => `nav-link ${isActive ? 'active text-primary fw-bold bg-white rounded shadow-sm' : 'text-secondary'}`}>
-            <MdAutoGraph className="me-2" />Leader
-          </NavLink>
-        </li>
-        
-      </ul>
-    </div>
-  </li>
-)}
+          {user?.user?.branch === 'sales' && (
+            <li className="nav-item">
+              <a
+                className="nav-link d-flex justify-content-between align-items-center"
+                data-bs-toggle="collapse"
+                href="#salesSubmenu"
+                role="button"
+                aria-expanded="false"
+                aria-controls="salesSubmenu"
+              >
+                <span><i className="bi bi-bar-chart-line-fill me-2 ms-3" ></i> Sales </span>
+                <i className="bi bi-chevron-down"></i>
+              </a>
+              <div className="collapse ps-3" id="salesSubmenu">
+                <ul className="nav flex-column ps-0">
+                  <li>
+                    <NavLink to="/deals" className={({ isActive }) => `nav-link ${isActive ? 'active text-primary fw-bold bg-white rounded shadow-sm' : 'text-secondary'}`}>
+                      <i className="bi bi-percent me-2"></i>Deals
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/leaderlead" className={({ isActive }) => `nav-link ${isActive ? 'active text-primary fw-bold bg-white rounded shadow-sm' : 'text-secondary'}`}>
+                      <MdAutoGraph className="me-2" />Leader
+                    </NavLink>
+                  </li>
+
+                </ul>
+              </div>
+            </li>
+          )}
 
 
           {/* Other Menu Items */}

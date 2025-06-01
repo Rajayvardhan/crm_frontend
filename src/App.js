@@ -133,12 +133,12 @@ const App = () => {
         <LeaderRoute exact path='/members'>
           <Members />
         </LeaderRoute>
-        <LeaderRoute exact path='/deals'>
+        <MultiRoleRoute exact path='/deals' allowedRoles={['Admin', 'Leader', 'Employee']}>
           <Deals />
-        </LeaderRoute>
-        <LeaderRoute exact path='/leaderlead'>
+        </MultiRoleRoute>
+        <MultiRoleRoute exact path='/leaderlead' allowedRoles={['Admin', 'Leader', 'Employee']}>
           <LeaderLead />
-        </LeaderRoute>
+        </MultiRoleRoute>
         <LeaderRoute exact path='/editdeals'>
           <Editdeals />
         </LeaderRoute>
