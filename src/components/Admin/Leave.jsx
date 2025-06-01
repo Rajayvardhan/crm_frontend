@@ -33,7 +33,6 @@ const Leave = () => {
         setApplication(application);
       }
     }
-
     const rejectApplication = async () => {
       console.log(application)
       if(application.adminResponse==="Rejected")
@@ -49,7 +48,6 @@ const Leave = () => {
         setApplication(application);
       }
     }
-    
   return (
     <>
     {
